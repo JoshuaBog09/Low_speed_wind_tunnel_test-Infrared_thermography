@@ -5,8 +5,7 @@ import glob
 import os
 import skimage
 from skimage import filters
-from skimage import morphology
-from skimage.segmentation import watershed
+from scipy import ndimage
 
 # Links
 # - Choosing colormaps
@@ -15,7 +14,7 @@ from skimage.segmentation import watershed
 
 
 # -- initialize --
-path = '3d/-1'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '2d/3'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
 pixel_size = 4
@@ -29,11 +28,12 @@ def GenArray(file_number):
 
 
 #  Plots the data set
-def ImagePlotter(dataset):
+def ImagePlotter(dataset, line=0):
     plt.imshow(dataset, vmin=np.min(dataset), vmax=np.max(dataset), aspect='auto', cmap='inferno')
     cbar = plt.colorbar()
     cbar.set_label('Degrees C')
     plt.title('Differential Infrared Thermography')
+    plt.axvline(line, 0, 120, linewidth=2, c="b")
     plt.show()
 
 
@@ -103,7 +103,6 @@ def FindChord(image):
     delta_edge_detection = np.diff(edge_detection)
     delta_magnified_edge_detection = np.diff(magnified_edge)
     jump_locations = np.argwhere(delta_magnified_edge_detection > 0.05)[140:180, 1]
-    print(jump_locations)
     chord_start, chord_end = np.min(jump_locations), np.max(jump_locations)
     coords_chord = (chord_start, chord_end)
     chord_length = chord_end - chord_start
@@ -121,14 +120,14 @@ def FindBorderImage(image, type):
 
 ImagePlotter(final)
 ImagePlotter(final_alt)
-ImagePlotter(averaged_data)
+# ImagePlotter(averaged_data)
 
-
-ImagePlotter(FindBorderImage(final,0))
-ImagePlotter(FindBorderImage(final,1))
+# ImagePlotter(final_alt)
+# ImagePlotter(FindBorderImage(final,0))
+# ImagePlotter(FindBorderImage(final,0))
+#ImagePlotter(FindBorderImage(final,1))
 
 print(FindChord((final)))
-
 
 # seed_mask = np.zeros(final_alt.shape, dtype=np.int)
 # seed_mask[0, 0] = 0.2 # background
@@ -140,8 +139,55 @@ print(FindChord((final)))
 # ImagePlotter(ws)
 # ImagePlotter(final_alt)
 
-edge = filters.sobel(final_alt)
-magnifiededge = filters.gaussian(edge, sigma = 0.75)
-ImagePlotter(magnifiededge)
+# edge = filters.sobel(final_alt)
+# magnifiededge = filters.gaussian(edge, sigma = 0.75)
+# ImagePlotter(magnifiededge)
 
-# trans_point = max(magnifiededge[FindBorderImage[0][0]:])FindBorderImage[0][1]
+# def GaussianMadness(final):
+#     im_blur = ndimage.gaussian_filter(final, 1)
+#     ImagePlotter(im_blur)
+#     return im_blur
+
+
+# start_location = FindChord(final)[0][0]+5
+# end_location = FindChord(final)[0][1]-5
+# transition_possible = final[10:100,start_location:end_location]
+# print(transition_possible.shape)
+# transition_possible[:, 0] += 10
+# transition_detection = np.diff(transition_possible)
+# transition = np.argwhere(transition_detection > 0.09)
+# transition[:, 0] += 10
+# transition[:, 1] += start_location
+#
+# print(transition)
+
+med_denoised = ndimage.median_filter(final, 4)
+med_denoised = FindBorderImage(med_denoised,1)
+ImagePlotter(med_denoised)
+
+start_location = FindChord(final)[0][0]+10
+end_location = FindChord(final)[0][1]-10
+chordL = FindChord(final)[1]
+transition_possible = med_denoised[10:100,start_location:end_location]
+print(transition_possible.shape)
+transition_possible[:, 0] += 10
+transition_detection = np.diff(transition_possible)
+transition = np.argwhere(transition_detection > 0.01)
+transition[:, 0] += 10
+transition[:, 1] += start_location
+
+print(transition)
+
+transition_point = int(np.mean(transition[:,1]))
+
+fleading = end_location - transition_point + 10
+print(f"end location {end_location+10}")
+xoverc = fleading/chordL
+print(f"loc of transition {transition_point}")
+print()
+print(f"from leading edge {fleading}")
+print()
+print(xoverc)
+
+# final[:, transition_point] = 15.6
+ImagePlotter(final, transition_point)
