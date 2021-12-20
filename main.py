@@ -5,6 +5,8 @@ import glob
 import os
 import skimage
 from skimage import filters
+from skimage import morphology
+from skimage.segmentation import watershed
 
 # Links
 # - Choosing colormaps
@@ -13,7 +15,7 @@ from skimage import filters
 
 
 # -- initialize --
-path = '2d/10'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '3d/-1'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
 pixel_size = 4
@@ -59,9 +61,11 @@ for x in range(0, len(averaged_data), pixel_size):
         sub_array_value = np.mean(sub_array)
         final[int(x/pixel_size), int(y/pixel_size)] = sub_array_value
         #final[int(x):int(int(x) + pixel_size), int(y):int(pixel_size + int(y))] = sub_array_value
-averaged_sort = np.mean(np.sort(final)[10:65, 10:100])
+averaged_sort = np.mean(np.sort(final)[10:55, 10:100])
 
-final[final < averaged_sort + 0.5] = averaged_sort + 0.25
+final_alt = np.copy(final)
+final[final < averaged_sort + 0.15] = averaged_sort + 0.15
+
 
 # ImagePlotter(averaged_data)
 # ImagePlotter(final)
@@ -95,26 +99,49 @@ y_coord = 10
 # seperate background from foreground and magnify border to obtain chord locations
 def FindChord(image):
     edge_detection = filters.sobel(image)
-    magnified_edge = filters.gaussian(edge_detection, sigma = 0.75)
+    magnified_edge = filters.gaussian(edge_detection, sigma = 1)
     delta_edge_detection = np.diff(edge_detection)
     delta_magnified_edge_detection = np.diff(magnified_edge)
-    jump_locations = np.argwhere(delta_magnified_edge_detection > 0.1)[140:180, 1]
+    jump_locations = np.argwhere(delta_magnified_edge_detection > 0.05)[140:180, 1]
+    print(jump_locations)
     chord_start, chord_end = np.min(jump_locations), np.max(jump_locations)
     coords_chord = (chord_start, chord_end)
     chord_length = chord_end - chord_start
-    return coords_chord, chord_length
+    return [coords_chord, chord_length]
 
 
 # Output the image array with magnified/ detailed borders
 def FindBorderImage(image, type):
     edge_detection = filters.sobel(image)
-    magnified_edge = filters.gaussian(edge_detection, sigma=0.75)
+    magnified_edge = filters.gaussian(edge_detection, sigma=1)
     if type == 0:
         return edge_detection
     elif type == 1:
-        return  magnified_edge
+        return magnified_edge
 
-print(FindChord((final)))
+ImagePlotter(final)
+ImagePlotter(final_alt)
+ImagePlotter(averaged_data)
+
 
 ImagePlotter(FindBorderImage(final,0))
 ImagePlotter(FindBorderImage(final,1))
+
+print(FindChord((final)))
+
+
+# seed_mask = np.zeros(final_alt.shape, dtype=np.int)
+# seed_mask[0, 0] = 0.2 # background
+# seed_mask[60, 80] =  1 # foreground
+# blu = filters.sobel(final_alt)
+# blurred = filters.gaussian(blu, sigma = 0.75)
+# #ws = morphology.watershed(blurred, seed_mask)
+# ws = watershed(blurred, seed_mask)
+# ImagePlotter(ws)
+# ImagePlotter(final_alt)
+
+edge = filters.sobel(final_alt)
+magnifiededge = filters.gaussian(edge, sigma = 0.75)
+ImagePlotter(magnifiededge)
+
+# trans_point = max(magnifiededge[FindBorderImage[0][0]:])FindBorderImage[0][1]
