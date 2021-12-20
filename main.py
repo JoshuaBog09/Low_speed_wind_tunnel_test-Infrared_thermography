@@ -14,7 +14,7 @@ from scipy import ndimage
 
 
 # -- initialize --
-path = '2d/3'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '3d/18.5'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
 pixel_size = 4
@@ -177,19 +177,22 @@ transition[:, 0] += 10
 transition[:, 1] += start_location
 
 print(transition)
+if transition.tolist():
+    transition_point = int(np.mean(transition[:,1]))
 
-transition_point = int(np.mean(transition[:,1]))
+    fleading = end_location - transition_point + 10
+    print(f"end location {end_location+10}")
+    xoverc = fleading/chordL
+    print(f"loc of transition {transition_point}")
+    print()
+    print(f"from leading edge {fleading}")
+    print()
+    print(xoverc)
 
-fleading = end_location - transition_point + 10
-print(f"end location {end_location+10}")
-xoverc = fleading/chordL
-print(f"loc of transition {transition_point}")
-print()
-print(f"from leading edge {fleading}")
-print()
-print(xoverc)
+    # final[:, transition_point] = 15.6
 
-# final[:, transition_point] = 15.6
-ImagePlotter(final, transition_point)
+    ImagePlotter(final, transition_point)
+else:
+    print("No transition")
 
 # End of script
