@@ -11,7 +11,7 @@ import os
 
 
 # -- initialize --
-path = '2d/0'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '2d/10'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
 pixel_size = 4
@@ -57,11 +57,12 @@ for x in range(0, len(averaged_data), pixel_size):
         sub_array_value = np.mean(sub_array)
         final[int(x/pixel_size), int(y/pixel_size)] = sub_array_value
         #final[int(x):int(int(x) + pixel_size), int(y):int(pixel_size + int(y))] = sub_array_value
+averaged_sort = np.mean(np.sort(final)[10:65, 10:100])
 
-# final[final < 15.35] = 15
+final[final < averaged_sort + 0.5] = averaged_sort + 0.25
 
-ImagePlotter(averaged_data)
-ImagePlotter(final)
+# ImagePlotter(averaged_data)
+# ImagePlotter(final)
 
 
 path3d = "3d"
