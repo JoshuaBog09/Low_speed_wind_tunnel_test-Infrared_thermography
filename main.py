@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import os
+import skimage
+from skimage import filters
 
 # Links
 # - Choosing colormaps
@@ -82,14 +84,32 @@ y_coord = 10
 #         np.delete(location[y_coord+1])
 
 
-print(location)
-# print(np.bincount(location))
-# index = np.where(np.any(np.abs(delta_data) > 0.01))
-# print(index)
+# print(location)
+
 
 # for k in range(len(delta_data)):
 #     for l in range(len(delta_data[1])):
 #         if abs(delta_data[k])> 0.2:
 #             print(delta_data.index()
 
-# hallo Joshua
+# seperate background from foreground and magnify border
+edge_detection = filters.sobel(final)
+magnified_edge = filters.gaussian(edge_detection, sigma = 0.75)
+
+
+delta_edge_detection = np.diff(edge_detection)
+delta_magnified_edge_detection = np.diff(magnified_edge)
+
+location_edge = np.argwhere(np.abs(delta_data) > 0.1)
+location_edge[:, 0] += 10
+
+ImagePlotter(edge_detection)
+
+jump_locations = np.argwhere(delta_magnified_edge_detection > 0.1)[140:180,1]
+print(jump_locations)
+chord_start, chord_end = np.min(jump_locations), np.max(jump_locations)
+coords_chord = (chord_start, chord_end)
+chord_length = chord_end - chord_start
+print(coords_chord)
+print(chord_length)
+ImagePlotter(magnified_edge)
