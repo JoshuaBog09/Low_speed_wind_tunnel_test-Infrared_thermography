@@ -105,6 +105,7 @@ def FindChord(image):
     return coords_chord, chord_length
 
 
+# Output the image array with magnified/ detailed borders
 def FindBorderImage(image, type):
     edge_detection = filters.sobel(image)
     magnified_edge = filters.gaussian(edge_detection, sigma=0.75)
