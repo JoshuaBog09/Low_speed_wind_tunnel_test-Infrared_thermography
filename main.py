@@ -191,3 +191,5 @@ print(xoverc)
 
 # final[:, transition_point] = 15.6
 ImagePlotter(final, transition_point)
+
+# End of script
