@@ -92,24 +92,28 @@ y_coord = 10
 #         if abs(delta_data[k])> 0.2:
 #             print(delta_data.index()
 
-# seperate background from foreground and magnify border
-edge_detection = filters.sobel(final)
-magnified_edge = filters.gaussian(edge_detection, sigma = 0.75)
+# seperate background from foreground and magnify border to obtain chord locations
+def FindChord(image):
+    edge_detection = filters.sobel(image)
+    magnified_edge = filters.gaussian(edge_detection, sigma = 0.75)
+    delta_edge_detection = np.diff(edge_detection)
+    delta_magnified_edge_detection = np.diff(magnified_edge)
+    jump_locations = np.argwhere(delta_magnified_edge_detection > 0.1)[140:180, 1]
+    chord_start, chord_end = np.min(jump_locations), np.max(jump_locations)
+    coords_chord = (chord_start, chord_end)
+    chord_length = chord_end - chord_start
+    return coords_chord, chord_length
 
 
-delta_edge_detection = np.diff(edge_detection)
-delta_magnified_edge_detection = np.diff(magnified_edge)
+def FindBorderImage(image, type):
+    edge_detection = filters.sobel(image)
+    magnified_edge = filters.gaussian(edge_detection, sigma=0.75)
+    if type == 0:
+        return edge_detection
+    elif type == 1:
+        return  magnified_edge
 
-location_edge = np.argwhere(np.abs(delta_data) > 0.1)
-location_edge[:, 0] += 10
+print(FindChord((final)))
 
-ImagePlotter(edge_detection)
-
-jump_locations = np.argwhere(delta_magnified_edge_detection > 0.1)[140:180,1]
-print(jump_locations)
-chord_start, chord_end = np.min(jump_locations), np.max(jump_locations)
-coords_chord = (chord_start, chord_end)
-chord_length = chord_end - chord_start
-print(coords_chord)
-print(chord_length)
-ImagePlotter(magnified_edge)
+ImagePlotter(FindBorderImage(final,0))
+ImagePlotter(FindBorderImage(final,1))
