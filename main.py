@@ -10,7 +10,9 @@ from scipy import ndimage
 # Links
 # - Choosing colormaps
 # https://matplotlib.org/stable/tutorials/colors/colormaps.html
-#
+# https://flothesof.github.io/removing-background-scikit-image.html#Applying-the-watershed
+# https://scipy-lectures.org/advanced/image_processing/auto_examples/plot_face_denoise.html
+# https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_watershed.html
 
 
 # -- initialize --
