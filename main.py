@@ -79,7 +79,7 @@ def FindTransition(image, start, end, length):
     transition_possible[:, 0] += 10
     # Detect transition point based on data jumps and then correct for ignored distance
     transition_detection = np.diff(transition_possible)
-    transition_points = np.argwhere(transition_detection > 0.01)
+    transition_points = np.argwhere(transition_detection > 0.0125)
     transition_points[:, 0] += 10
     transition_points[:, 1] += start
 
