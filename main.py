@@ -127,6 +127,8 @@ path2d = "2d"
 file_link_3d = glob.glob("3d/*")
 file_link_2d = glob.glob("2d/*")
 title_names = []  # for graph title
+# --- MODE ---
+mode = "3d"  # test setup
 
 # Generate names for the graph title
 for name in file_link_2d:
