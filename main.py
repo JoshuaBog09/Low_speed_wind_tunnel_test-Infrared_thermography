@@ -10,16 +10,10 @@ from scipy import ndimage
 # Links
 # - Choosing colormaps
 # https://matplotlib.org/stable/tutorials/colors/colormaps.html
+# - Image processing
 # https://flothesof.github.io/removing-background-scikit-image.html#Applying-the-watershed
 # https://scipy-lectures.org/advanced/image_processing/auto_examples/plot_face_denoise.html
 # https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_watershed.html
-
-
-# -- initialize --
-path = '3d/10'   # change path to the correct directory of the to be analysed aoa and test setup
-file_link = []  # Storage container file links
-data_sets = []  # Storage container data sets
-pixel_size = 4
 
 
 # -- Functions --
@@ -43,41 +37,6 @@ def ImagePlotter(dataset, line=0):
 def AverageArrays(datasets):
     return np.mean(datasets, axis=0)
 
-
-# -- Main code --
-#  Generate a file link list
-for filename in glob.glob(os.path.join(path, '*.csv')):
-    file_link.append(filename)
-
-for data_set in range(len(file_link)):
-    data_sets.append(GenArray(data_set))
-
-averaged_data = AverageArrays(data_sets)
-
-final = np.zeros((480//pixel_size, 640//pixel_size))
-#final = np.zeros((480, 640))
-
-for x in range(0, len(averaged_data), pixel_size):
-    for y in range(0, len(averaged_data[0]), pixel_size):
-        sub_array = averaged_data[x:(x + pixel_size), y:(y + pixel_size)]
-        sub_array_value = np.mean(sub_array)
-        final[int(x/pixel_size), int(y/pixel_size)] = sub_array_value
-        #final[int(x):int(int(x) + pixel_size), int(y):int(pixel_size + int(y))] = sub_array_value
-averaged_sort = np.mean(np.sort(final)[10:55, 10:100])
-
-final_alt = np.copy(final)
-final[final < averaged_sort + 0.15] = averaged_sort + 0.15
-
-
-# ImagePlotter(averaged_data)
-# ImagePlotter(final)
-
-
-path3d = "3d"
-path2d = "2d"
-file_link_3d = glob.glob("3d/*")
-file_link_2d = glob.glob("2d/*")
-
 # seperate background from foreground and magnify border to obtain chord locations
 def FindChord(image):
     edge_detection = filters.sobel(image)
@@ -90,7 +49,6 @@ def FindChord(image):
     chord_length = chord_end - chord_start
     return [coords_chord, chord_length]
 
-
 # Output the image array with magnified/ detailed borders
 def FindBorderImage(image, type):
     edge_detection = filters.sobel(image)
@@ -99,16 +57,6 @@ def FindBorderImage(image, type):
         return edge_detection
     elif type == 1:
         return magnified_edge
-
-# ImagePlotter(final)
-# ImagePlotter(final_alt)
-# ImagePlotter(averaged_data)
-# ImagePlotter(final_alt)
-# ImagePlotter(FindBorderImage(final,0))
-# ImagePlotter(FindBorderImage(final,0))
-# ImagePlotter(FindBorderImage(final,1))
-
-print(FindChord((final)))
 
 def FindTransition(image, start, end, length):
     # Further remove noise to make transition line more visible
@@ -143,11 +91,65 @@ def FindTransition(image, start, end, length):
         return [False]
 
 
-p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1])
-if p[0]:
-    ImagePlotter(final_alt, p[1])
-print(p)
-print("----------")
+# ---- Main code ----
+
+# -- initialize values --
+path = '3d/-1'   # change path to the correct directory of the to be analysed aoa and test setup
+file_link = []  # Storage container file links
+data_sets = []  # Storage container data sets
+pixel_size = 4
+
+path3d = "3d"
+path2d = "2d"
+file_link_3d = glob.glob("3d/*")
+file_link_2d = glob.glob("2d/*")
+
+
+for path in file_link_3d[2:4]:
+    file_link = []
+    data_sets = []
+    #  Generate a file link list
+    for filename in glob.glob(os.path.join(path, '*.csv')):
+        file_link.append(filename)
+
+    for data_set in range(len(file_link)):
+        data_sets.append(GenArray(data_set))
+
+    averaged_data = AverageArrays(data_sets)
+
+    final = np.zeros((480//pixel_size, 640//pixel_size))
+    #final = np.zeros((480, 640))
+
+    for x in range(0, len(averaged_data), pixel_size):
+        for y in range(0, len(averaged_data[0]), pixel_size):
+            sub_array = averaged_data[x:(x + pixel_size), y:(y + pixel_size)]
+            sub_array_value = np.mean(sub_array)
+            final[int(x/pixel_size), int(y/pixel_size)] = sub_array_value
+            #final[int(x):int(int(x) + pixel_size), int(y):int(pixel_size + int(y))] = sub_array_value
+    averaged_sort = np.mean(np.sort(final)[10:55, 10:100])
+
+    final_alt = np.copy(final)
+    final[final < averaged_sort + 0.15] = averaged_sort + 0.15
+
+    print(FindChord((final)))
+
+    p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1])
+    if p[0]:
+        ImagePlotter(final_alt, p[1])
+    print(p)
+    print("----------")
+
+
+
+# ImagePlotter(averaged_data)
+# ImagePlotter(final)
+# ImagePlotter(final)
+# ImagePlotter(final_alt)
+# ImagePlotter(averaged_data)
+# ImagePlotter(final_alt)
+# ImagePlotter(FindBorderImage(final,0))
+# ImagePlotter(FindBorderImage(final,0))
+# ImagePlotter(FindBorderImage(final,1))
 
 # med_denoised = ndimage.median_filter(final, 4)
 # med_denoised = FindBorderImage(med_denoised, 1)
