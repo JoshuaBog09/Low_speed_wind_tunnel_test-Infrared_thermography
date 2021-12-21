@@ -3,7 +3,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import glob
 import os
-import skimage
 from skimage import filters
 from scipy import ndimage
 
@@ -28,7 +27,7 @@ def ImagePlotter(dataset, line=0, title = ""):
     plt.imshow(dataset, vmin=np.min(dataset), vmax=np.max(dataset), aspect='auto', cmap='inferno')
     cbar = plt.colorbar()
     cbar.set_label('Degrees C')
-    plt.title(f"Differential Infrared Thermography at {title}")
+    plt.title(f"Differential Infrared Thermography at {title} degrees")
     plt.axvline(line, 0, 120, linewidth=2, c="b")
     plt.show()
 
@@ -36,10 +35,6 @@ def ImagePlotter(dataset, line=0, title = ""):
 #  Averages all the datasets into one data set
 def AverageArrays(datasets):
     return np.mean(datasets, axis=0)
-
-# Compress 4 points into one data point
-def FourToOne():
-    return
 
 
 # seperate background from foreground and magnify border to obtain chord locations
@@ -63,7 +58,7 @@ def FindBorderImage(image, type):
     elif type == 1:
         return magnified_edge
 
-def FindTransition(image, start, end, length, alter = 0):
+def FindTransition(image, start, end, length, alter = 0, modealter = "3d"):
     # Further remove noise to make transition line more visible
     # Using scipiy.ndimage.median_filter
     # and by calling the FindBorderImage function to magnify the edges
@@ -79,10 +74,17 @@ def FindTransition(image, start, end, length, alter = 0):
     transition_possible[:, 0] += 10
     # Detect transition point based on data jumps and then correct for ignored distance
     transition_detection = np.diff(transition_possible)
-    if alter == 0:
-        transition_points = np.argwhere((transition_detection > 0.0122) & (transition_detection < 0.0175))
-    elif alter == 1:
-        transition_points = np.argwhere((transition_detection > 0.01) & (transition_detection < 0.0175))
+    if modealter.strip() == "3d":
+        if alter == 0:
+            transition_points = np.argwhere((transition_detection > 0.0122) & (transition_detection < 0.0175))
+        elif alter == 1:
+            transition_points = np.argwhere((transition_detection > 0.00815) & (transition_detection < 0.0175))
+    elif modealter.strip() == "2d":
+        if alter == 0:
+            transition_points = np.argwhere((transition_detection > 0.012) & (transition_detection < 0.0175))
+        elif alter == 1:
+            transition_points = np.argwhere((transition_detection > 0.00815) & (transition_detection < 0.015))
+
     transition_points[:, 0] += 10
     transition_points[:, 1] += start
 
@@ -97,14 +99,18 @@ def FindTransition(image, start, end, length, alter = 0):
         print(f"as chord ratio {tpointaschord}")
         return [True, tpoint, tpointaschord]
     else:
-        print("No transition")
+        print("Transition at leading edge")
         tpoint = end + 5
         tpointaschord = 0
         return [False, tpoint, tpointaschord]
 
 
-def PlotTransitionVariation(x_list, y_list):
+def PlotTransitionVariation(x_list, y_list, mode):
     plt.plot(x_list, y_list)
+    plt.grid()
+    plt.title(f"Chord wise variation of transition point for angles of attack for {mode} set up")
+    plt.xlabel("x/c [-]")
+    plt.ylabel("Angle of attack [degrees]")
     plt.show()
 
 # ---- Main code ----
@@ -123,10 +129,10 @@ file_link_2d = glob.glob("2d/*")
 title_names = []  # for graph title
 
 # Generate names for the graph title
-for name in file_link_3d:
+for name in file_link_2d:
     title_names.append(name[3:])
 
-for path, title_name in zip(file_link_3d, title_names):
+for path, title_name in zip(file_link_2d, title_names):
     file_link = []
     data_sets = []
 
@@ -153,13 +159,21 @@ for path, title_name in zip(file_link_3d, title_names):
     final_alt = np.copy(final)
     final[final < averaged_sort + 0.15] = averaged_sort + 0.15
 
-    print(FindChord((final)), title_name)
+    print(FindChord(final), title_name)
 
-    if title_name.strip() == "6.5" or title_name.strip() == "7":
-        alter_factor = 1
-    else:
-        alter_factor = 0
-    p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1], alter_factor)
+    if mode.strip() == "3d":
+        if title_name.strip() == "7" or title_name.strip() == "5" or title_name.strip() == "5.5" or title_name.strip() == "6.5":
+            alter_factor = 1
+        else:
+            alter_factor = 0
+
+    if mode.strip() == "2d":
+        if title_name.strip() == "5" or title_name.strip() == "5.5" or title_name.strip() == "6" or title_name.strip() == "6.5":
+            alter_factor = 1
+        else:
+            alter_factor = 0
+
+    p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1], alter_factor, mode)
     if p[0]:
         ImagePlotter(final_alt, p[1], title_name)
     elif not p[0]:
@@ -231,52 +245,6 @@ while bubble2:
 title_names_angle.extend(b_values)
 xovercpoints.extend(xoverc_values)
 
-PlotTransitionVariation(xovercpoints, title_names_angle)
-
-
-#print(xovercpoints)
-
-
-# ImagePlotter(averaged_data)
-# ImagePlotter(final)
-# ImagePlotter(final)
-# ImagePlotter(final_alt)
-# ImagePlotter(averaged_data)
-# ImagePlotter(final_alt)
-# ImagePlotter(FindBorderImage(final,0))
-# ImagePlotter(FindBorderImage(final,0))
-# ImagePlotter(FindBorderImage(final,1))
-
-# med_denoised = ndimage.median_filter(final, 4)
-# med_denoised = FindBorderImage(med_denoised, 1)
-# ImagePlotter(med_denoised)
-#
-# start_location = FindChord(final)[0][0] + 10
-# end_location = FindChord(final)[0][1] - 10
-# chordL = FindChord(final)[1]
-# transition_possible = med_denoised[10:100, start_location:end_location]
-# transition_possible[:, 0] += 10
-# transition_detection = np.diff(transition_possible)
-# transition = np.argwhere(transition_detection > 0.01)
-# transition[:, 0] += 10
-# transition[:, 1] += start_location
-#
-# if transition.tolist():
-#     transition_point = int(np.mean(transition[:,1]))
-#
-#     fleading = end_location - transition_point + 10
-#     print(f"end location {end_location+10}")
-#     xoverc = fleading/chordL
-#     print(f"loc of transition {transition_point}")
-#     print()
-#     print(f"from leading edge {fleading}")
-#     print()
-#     print(xoverc)
-#
-#     # final[:, transition_point] = 15.6
-#
-#     ImagePlotter(final_alt, transition_point)
-# else:
-#     print("No transition")
+PlotTransitionVariation(xovercpoints, title_names_angle, mode)
 
 # End of script
