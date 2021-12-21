@@ -24,11 +24,11 @@ def GenArray(file_number):
 
 
 #  Plots the data set
-def ImagePlotter(dataset, line=0):
+def ImagePlotter(dataset, line=0, title = ""):
     plt.imshow(dataset, vmin=np.min(dataset), vmax=np.max(dataset), aspect='auto', cmap='inferno')
     cbar = plt.colorbar()
     cbar.set_label('Degrees C')
-    plt.title('Differential Infrared Thermography')
+    plt.title(f"Differential Infrared Thermography at {title}")
     plt.axvline(line, 0, 120, linewidth=2, c="b")
     plt.show()
 
@@ -36,6 +36,11 @@ def ImagePlotter(dataset, line=0):
 #  Averages all the datasets into one data set
 def AverageArrays(datasets):
     return np.mean(datasets, axis=0)
+
+# Compress 4 points into one data point
+def FourToOne():
+    return
+
 
 # seperate background from foreground and magnify border to obtain chord locations
 def FindChord(image):
@@ -63,10 +68,12 @@ def FindTransition(image, start, end, length):
     # Using scipiy.ndimage.median_filter
     # and by calling the FindBorderImage function to magnify the edges
     image = ndimage.median_filter(image, 4)
+    #ImagePlotter(image)
     image = FindBorderImage(image, 1)
+    #ImagePlotter(image)
     # Correction for ignored distance
     start += 10
-    end -= 10
+    end -= 5
     # crop to only look for a transition edge on the wing surface
     transition_possible = image[10:100,start:end]
     transition_possible[:, 0] += 10
@@ -80,38 +87,51 @@ def FindTransition(image, start, end, length):
     if transition_points.tolist():
         tpoint = int(np.mean(transition_points[:, 1]))
         fromleading = end - tpoint + 10
-        xoverc1 = fromleading / length
+        tpointaschord = fromleading / length
         print(f"end location {end + 10}")
         print(f"loc of transition {tpoint}")
         print(f"from leading edge {fromleading}")
-        print(f"as chord ratio {xoverc1}")
-        return [True, tpoint]
+        print(f"as chord ratio {tpointaschord}")
+        return [True, tpoint, tpointaschord]
     else:
         print("No transition")
-        return [False]
+        tpoint = end + 5
+        tpointaschord = 0
+        return [False, tpoint, tpointaschord]
 
+
+def PlotTransitionVariation(x_list, y_list):
+    plt.plot(x_list, y_list)
+    plt.show()
 
 # ---- Main code ----
 
 # -- initialize values --
-path = '3d/-1'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '3d/0'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
+xovercpoints = [] # Storage container x over c transition location
 pixel_size = 4
 
 path3d = "3d"
 path2d = "2d"
 file_link_3d = glob.glob("3d/*")
 file_link_2d = glob.glob("2d/*")
+title_names = [] # for graph title
 
+# Generate file link names for the graph title
+for name in file_link_3d:
+    title_names.append(name[3:])
 
-for path in file_link_3d[2:4]:
+for path, title_name in zip(file_link_3d[40:41], title_names[40:41]):
     file_link = []
     data_sets = []
+
     #  Generate a file link list
     for filename in glob.glob(os.path.join(path, '*.csv')):
         file_link.append(filename)
 
+    # print(file_link)
     for data_set in range(len(file_link)):
         data_sets.append(GenArray(data_set))
 
@@ -127,18 +147,42 @@ for path in file_link_3d[2:4]:
             final[int(x/pixel_size), int(y/pixel_size)] = sub_array_value
             #final[int(x):int(int(x) + pixel_size), int(y):int(pixel_size + int(y))] = sub_array_value
     averaged_sort = np.mean(np.sort(final)[10:55, 10:100])
-
     final_alt = np.copy(final)
     final[final < averaged_sort + 0.15] = averaged_sort + 0.15
 
-    print(FindChord((final)))
+    print(FindChord((final)), title_name)
 
     p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1])
     if p[0]:
-        ImagePlotter(final_alt, p[1])
-    print(p)
+        ImagePlotter(final_alt, p[1], title_name)
+    elif not p[0]:
+        ImagePlotter(final_alt, p[1], title_name)
+    xovercpoints.append(p[2])
     print("----------")
 
+
+title_names = [part.strip('b') for part in title_names]
+title_names_angle = list(map(float, title_names))
+
+PlotTransitionVariation(xovercpoints, title_names_angle[40:41])
+
+bubble = True
+
+while bubble:
+    bubble = False
+    for i in range(len(title_names_angle)-1):
+        if title_names_angle[i+1] < title_names_angle[i]:
+            temp_file = title_names_angle[i+1]
+            title_names_angle[i + 1] = title_names_angle[i]
+            title_names_angle[i] = temp_file
+
+            # temp_file_2 = xovercpoints[i+1]
+            # xovercpoints[i + 1] = xovercpoints[i]
+            # xovercpoints[i] = temp_file_2
+            # bubble = True
+
+print(title_names_angle)
+print(xovercpoints)
 
 
 # ImagePlotter(averaged_data)
