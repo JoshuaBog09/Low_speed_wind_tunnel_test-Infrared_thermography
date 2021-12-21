@@ -16,7 +16,7 @@ from scipy import ndimage
 
 
 # -- initialize --
-path = '3d/18.5'   # change path to the correct directory of the to be analysed aoa and test setup
+path = '3d/10'   # change path to the correct directory of the to be analysed aoa and test setup
 file_link = []  # Storage container file links
 data_sets = []  # Storage container data sets
 pixel_size = 4
@@ -78,26 +78,6 @@ path2d = "2d"
 file_link_3d = glob.glob("3d/*")
 file_link_2d = glob.glob("2d/*")
 
-
-delta_data = np.diff(final)[10:100]
-location = np.argwhere(np.abs(delta_data) > 0.23)
-location[:, 0] += 10
-
-y_coord = 10
-
-# if location[y_coord][0] == location[y_coord+1][0]:
-#     if abs(location[y_coord][1]-location[y_coord+1][1]) <= 5:
-#         np.delete(location[y_coord+1])
-
-
-# print(location)
-
-
-# for k in range(len(delta_data)):
-#     for l in range(len(delta_data[1])):
-#         if abs(delta_data[k])> 0.2:
-#             print(delta_data.index()
-
 # seperate background from foreground and magnify border to obtain chord locations
 def FindChord(image):
     edge_detection = filters.sobel(image)
@@ -120,81 +100,85 @@ def FindBorderImage(image, type):
     elif type == 1:
         return magnified_edge
 
-ImagePlotter(final)
-ImagePlotter(final_alt)
+# ImagePlotter(final)
+# ImagePlotter(final_alt)
 # ImagePlotter(averaged_data)
-
 # ImagePlotter(final_alt)
 # ImagePlotter(FindBorderImage(final,0))
 # ImagePlotter(FindBorderImage(final,0))
-#ImagePlotter(FindBorderImage(final,1))
+# ImagePlotter(FindBorderImage(final,1))
 
 print(FindChord((final)))
 
-# seed_mask = np.zeros(final_alt.shape, dtype=np.int)
-# seed_mask[0, 0] = 0.2 # background
-# seed_mask[60, 80] =  1 # foreground
-# blu = filters.sobel(final_alt)
-# blurred = filters.gaussian(blu, sigma = 0.75)
-# #ws = morphology.watershed(blurred, seed_mask)
-# ws = watershed(blurred, seed_mask)
-# ImagePlotter(ws)
-# ImagePlotter(final_alt)
+def FindTransition(image, start, end, length):
+    # Further remove noise to make transition line more visible
+    # Using scipiy.ndimage.median_filter
+    # and by calling the FindBorderImage function to magnify the edges
+    image = ndimage.median_filter(image, 4)
+    image = FindBorderImage(image, 1)
+    # Correction for ignored distance
+    start += 10
+    end -= 10
+    # crop to only look for a transition edge on the wing surface
+    transition_possible = image[10:100,start:end]
+    transition_possible[:, 0] += 10
+    # Detect transition point based on data jumps and then correct for ignored distance
+    transition_detection = np.diff(transition_possible)
+    transition_points = np.argwhere(transition_detection > 0.01)
+    transition_points[:, 0] += 10
+    transition_points[:, 1] += start
 
-# edge = filters.sobel(final_alt)
-# magnifiededge = filters.gaussian(edge, sigma = 0.75)
-# ImagePlotter(magnifiededge)
+    # If transition point exists calculate the location (chordwise and refrence frame)
+    if transition_points.tolist():
+        tpoint = int(np.mean(transition_points[:, 1]))
+        fromleading = end - tpoint + 10
+        xoverc1 = fromleading / length
+        print(f"end location {end + 10}")
+        print(f"loc of transition {tpoint}")
+        print(f"from leading edge {fromleading}")
+        print(f"as chord ratio {xoverc1}")
+        return [True, tpoint]
+    else:
+        print("No transition")
+        return [False]
 
-# def GaussianMadness(final):
-#     im_blur = ndimage.gaussian_filter(final, 1)
-#     ImagePlotter(im_blur)
-#     return im_blur
 
+p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1])
+if p[0]:
+    ImagePlotter(final_alt, p[1])
+print(p)
+print("----------")
 
-# start_location = FindChord(final)[0][0]+5
-# end_location = FindChord(final)[0][1]-5
-# transition_possible = final[10:100,start_location:end_location]
-# print(transition_possible.shape)
+# med_denoised = ndimage.median_filter(final, 4)
+# med_denoised = FindBorderImage(med_denoised, 1)
+# ImagePlotter(med_denoised)
+#
+# start_location = FindChord(final)[0][0] + 10
+# end_location = FindChord(final)[0][1] - 10
+# chordL = FindChord(final)[1]
+# transition_possible = med_denoised[10:100, start_location:end_location]
 # transition_possible[:, 0] += 10
 # transition_detection = np.diff(transition_possible)
-# transition = np.argwhere(transition_detection > 0.09)
+# transition = np.argwhere(transition_detection > 0.01)
 # transition[:, 0] += 10
 # transition[:, 1] += start_location
 #
-# print(transition)
-
-med_denoised = ndimage.median_filter(final, 4)
-med_denoised = FindBorderImage(med_denoised,1)
-ImagePlotter(med_denoised)
-
-start_location = FindChord(final)[0][0]+10
-end_location = FindChord(final)[0][1]-10
-chordL = FindChord(final)[1]
-transition_possible = med_denoised[10:100,start_location:end_location]
-print(transition_possible.shape)
-transition_possible[:, 0] += 10
-transition_detection = np.diff(transition_possible)
-transition = np.argwhere(transition_detection > 0.01)
-transition[:, 0] += 10
-transition[:, 1] += start_location
-
-print(transition)
-if transition.tolist():
-    transition_point = int(np.mean(transition[:,1]))
-
-    fleading = end_location - transition_point + 10
-    print(f"end location {end_location+10}")
-    xoverc = fleading/chordL
-    print(f"loc of transition {transition_point}")
-    print()
-    print(f"from leading edge {fleading}")
-    print()
-    print(xoverc)
-
-    # final[:, transition_point] = 15.6
-
-    ImagePlotter(final, transition_point)
-else:
-    print("No transition")
+# if transition.tolist():
+#     transition_point = int(np.mean(transition[:,1]))
+#
+#     fleading = end_location - transition_point + 10
+#     print(f"end location {end_location+10}")
+#     xoverc = fleading/chordL
+#     print(f"loc of transition {transition_point}")
+#     print()
+#     print(f"from leading edge {fleading}")
+#     print()
+#     print(xoverc)
+#
+#     # final[:, transition_point] = 15.6
+#
+#     ImagePlotter(final_alt, transition_point)
+# else:
+#     print("No transition")
 
 # End of script
