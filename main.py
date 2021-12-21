@@ -63,11 +63,11 @@ def FindBorderImage(image, type):
     elif type == 1:
         return magnified_edge
 
-def FindTransition(image, start, end, length):
+def FindTransition(image, start, end, length, alter = 0):
     # Further remove noise to make transition line more visible
     # Using scipiy.ndimage.median_filter
     # and by calling the FindBorderImage function to magnify the edges
-    image = ndimage.median_filter(image, 4)
+    image = ndimage.median_filter(image, 6)
     #ImagePlotter(image)
     image = FindBorderImage(image, 1)
     #ImagePlotter(image)
@@ -117,13 +117,13 @@ path3d = "3d"
 path2d = "2d"
 file_link_3d = glob.glob("3d/*")
 file_link_2d = glob.glob("2d/*")
-title_names = [] # for graph title
+title_names = []  # for graph title
 
-# Generate file link names for the graph title
+# Generate names for the graph title
 for name in file_link_3d:
     title_names.append(name[3:])
 
-for path, title_name in zip(file_link_3d[40:41], title_names[40:41]):
+for path, title_name in zip(file_link_3d, title_names):
     file_link = []
     data_sets = []
 
@@ -152,7 +152,11 @@ for path, title_name in zip(file_link_3d[40:41], title_names[40:41]):
 
     print(FindChord((final)), title_name)
 
-    p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1])
+    if title_name.strip() == "6.5" or title_name.strip() == "7":
+        alter_factor = 1
+    else:
+        alter_factor = 0
+    p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1], alter_factor)
     if p[0]:
         ImagePlotter(final_alt, p[1], title_name)
     elif not p[0]:
@@ -160,11 +164,22 @@ for path, title_name in zip(file_link_3d[40:41], title_names[40:41]):
     xovercpoints.append(p[2])
     print("----------")
 
+b_or_not = []
+title_names2 = []
 
-title_names = [part.strip('b') for part in title_names]
-title_names_angle = list(map(float, title_names))
+for part in title_names:
+    if part[-1] == "b":
+        title_names2.append(part.strip("b"))
+        b_or_not.append(1)
+    else:
+        b_or_not.append(0)
+        title_names2.append(part)
 
-PlotTransitionVariation(xovercpoints, title_names_angle[40:41])
+title_names_angle = list(map(float, title_names2))
+
+for i, bfound in zip(range(len(title_names_angle)), b_or_not):
+    if bfound == 1:
+        title_names_angle[i] *= 10
 
 bubble = True
 
@@ -176,13 +191,47 @@ while bubble:
             title_names_angle[i + 1] = title_names_angle[i]
             title_names_angle[i] = temp_file
 
-            # temp_file_2 = xovercpoints[i+1]
-            # xovercpoints[i + 1] = xovercpoints[i]
-            # xovercpoints[i] = temp_file_2
-            # bubble = True
+            temp_file_1 = b_or_not[i + 1]
+            b_or_not[i + 1] = b_or_not[i]
+            b_or_not[i] = temp_file_1
 
-print(title_names_angle)
-print(xovercpoints)
+            temp_file_2 = xovercpoints[i+1]
+            xovercpoints[i + 1] = xovercpoints[i]
+            xovercpoints[i] = temp_file_2
+
+            bubble = True
+
+b_values = title_names_angle[b_or_not.index(1):]
+xoverc_values = xovercpoints[b_or_not.index(1):]
+
+del title_names_angle[b_or_not.index(1):]
+del xovercpoints[b_or_not.index(1):]
+
+for i in range(len(b_values)):
+    b_values[i] /= 10
+
+bubble2 = True
+while bubble2:
+    bubble2 = False
+    for i in range(len(b_values) - 1):
+        if b_values[i+1] > b_values[i]:
+            temp_file_3 = b_values[i+1]
+            b_values[i + 1] = b_values[i]
+            b_values[i] = temp_file_3
+
+            temp_file_4 = xoverc_values[i + 1]
+            xoverc_values[i + 1] = xoverc_values[i]
+            xoverc_values[i] = temp_file_4
+
+            bubble2 = True
+
+title_names_angle.extend(b_values)
+xovercpoints.extend(xoverc_values)
+
+PlotTransitionVariation(xovercpoints, title_names_angle)
+
+
+#print(xovercpoints)
 
 
 # ImagePlotter(averaged_data)
