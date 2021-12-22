@@ -23,14 +23,15 @@ def GenArray(file_number):
 
 
 #  Plots the data set
-def ImagePlotter(dataset, line=0, title = ""):
+def ImagePlotter(dataset, line=0, title = "", mode = "3d"):
     plt.imshow(dataset, vmin=np.min(dataset), vmax=np.max(dataset), aspect='auto', cmap='inferno')
     cbar = plt.colorbar()
     cbar.set_label('Degrees C')
     plt.title(f"Differential Infrared Thermography at {title} degrees")
     plt.axvline(line, 0, 120, linewidth=2, c="b")
+    plt.savefig(f'pictures_{mode}//{title}.png', bbox_inches='tight')
     plt.show()
-
+    plt.close()
 
 #  Averages all the datasets into one data set
 def AverageArrays(datasets):
@@ -111,7 +112,9 @@ def PlotTransitionVariation(x_list, y_list, mode):
     plt.title(f"Chord wise variation of transition point for angles of attack for {mode} set up")
     plt.xlabel("x/c [-]")
     plt.ylabel("Angle of attack [degrees]")
+    plt.savefig(f'pictures_{mode}//plot.png', bbox_inches='tight')
     plt.show()
+    plt.close()
 
 # ---- Main code ----
 
@@ -131,10 +134,10 @@ title_names = []  # for graph title
 mode = "3d"  # test setup
 
 # Generate names for the graph title
-for name in file_link_2d:
+for name in file_link_3d:
     title_names.append(name[3:])
 
-for path, title_name in zip(file_link_2d, title_names):
+for path, title_name in zip(file_link_3d, title_names):
     file_link = []
     data_sets = []
 
@@ -177,9 +180,9 @@ for path, title_name in zip(file_link_2d, title_names):
 
     p = FindTransition(final, FindChord(final)[0][0], FindChord(final)[0][1], FindChord(final)[1], alter_factor, mode)
     if p[0]:
-        ImagePlotter(final_alt, p[1], title_name)
+        ImagePlotter(final_alt, p[1], title_name, mode)
     elif not p[0]:
-        ImagePlotter(final_alt, p[1], title_name)
+        ImagePlotter(final_alt, p[1], title_name, mode)
     xovercpoints.append(p[2])
     print("----------")
 
